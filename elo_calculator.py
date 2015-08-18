@@ -4,7 +4,8 @@ import challonge
 
 
 
-k = 32 #right now we use a constant K-value
+kMinimum = 32 
+kStart = 800
 
 
 player_db = {}
@@ -17,6 +18,8 @@ class player:
     def __init__(self, name, rating=1200):
         self.name = name
         self.rating = rating
+        self.k = 0
+        self.gamesPlayed = 0
 
     def __str__(self):
         return "name: " + self.name + " rating: " + str(self.rating)
@@ -51,12 +54,21 @@ def print_ratings():
 
 
 def update_rating(winner, loser):
+    winner.gamesPlayed += 1
+    loser.gamesPlayed += 1
     winner_old_rating = winner.rating
     loser_old_rating = loser.rating
+    winner.k = kStart / winner.gamesPlayed;
+    if winner.k < kMinimum:
+        winner.k = kMinimum
+    loser.k = kStart / loser.gamesPlayed;
+    if loser.k < kMinimum:
+        loser.k = kMinimum
     s = 1 # "score"
-    adjustment =  k * (s - calc_expected(winner_old_rating, loser_old_rating))
-    winner.rating += adjustment
-    loser.rating -= adjustment
+    adjustmentWinner =  winner.k * (s - calc_expected(winner_old_rating, loser_old_rating))
+    adjustmentLoser =  loser.k * (s - calc_expected(winner_old_rating, loser_old_rating))
+    winner.rating += adjustmentWinner
+    loser.rating -= adjustmentLoser
 
 
 def calc_expected(a, b):
