@@ -22,7 +22,7 @@ class player:
         self.gamesPlayed = 0
 
     def __str__(self):
-        return "name: " + self.name + " rating: " + str(self.rating)
+        return "name: " + self.name + " rating: " + str(self.rating) + " K Value: " + str(self.k)
 
 
 class match:
