@@ -1,7 +1,7 @@
 #@author: jhertz
 
 import challonge
-
+import pprint
 
 
 kMinimum = 32 
@@ -20,21 +20,25 @@ class player:
         self.rating = rating
         self.k = 0
         self.gamesPlayed = 0
+        self.wins = 0
+        self.losses = 0
 
     def __str__(self):
-        return "name: " + self.name + " rating: " + str(self.rating) + " K Value: " + str(self.k)
+        return "name: " + self.name + " rating: " + str(self.rating) + " K Value: " + str(self.k) + " gamesPlayed: " + str(self.gamesPlayed) + " Wins: " + str(self.wins) + " Losses: " + str(self.losses)
 
 
 class match:
     winner = ""
     loser = ""
+    score = ""
 
-    def __init__(self, winner, loser):
+    def __init__(self, winner, loser, score):
         self.winner = winner
         self.loser = loser
+        self.score = score
 
     def __str__(self):
-        return "winner: " + self.winner + " loser: " + self.loser
+        return "winner: " + self.winner + " loser: " + self.loser + " score: " + self.score
 
 
 
@@ -53,26 +57,54 @@ def print_ratings():
         print p
 
 
-def update_rating(winner, loser):
-    winner.gamesPlayed += 1
-    loser.gamesPlayed += 1
-    winner_old_rating = winner.rating
-    loser_old_rating = loser.rating
-    winner.k = kStart / winner.gamesPlayed;
-    if winner.k < kMinimum:
-        winner.k = kMinimum
-    loser.k = kStart / loser.gamesPlayed;
-    if loser.k < kMinimum:
-        loser.k = kMinimum
-    s = 1 # "score"
-    adjustmentWinner =  winner.k * (s - calc_expected(winner_old_rating, loser_old_rating))
-    adjustmentLoser =  loser.k * (s - calc_expected(winner_old_rating, loser_old_rating))
-    winner.rating += adjustmentWinner
-    loser.rating -= adjustmentLoser
+def update_rating(winner, loser, scores):
+
+    pprint.pprint(scores)
+
+    wins = int(scores[1])
+    for games in range(0, wins):
+        winner.gamesPlayed += 1
+        winner.wins += 1
+        loser.gamesPlayed += 1
+        loser.losses += 1
+        winner_old_rating = winner.rating
+        loser_old_rating = loser.rating
+        winner.k = kStart / winner.gamesPlayed;
+        if winner.k < kMinimum:
+            winner.k = kMinimum
+        loser.k = kStart / loser.gamesPlayed;
+        if loser.k < kMinimum:
+            loser.k = kMinimum
+        Ea = calcE(winner_old_rating, loser_old_rating)
+        Eb = calcE(loser_old_rating, winner_old_rating)
+        winner.rating =  winner_old_rating + winner.k * (1 - Ea)
+        loser.rating =  loser_old_rating + loser.k * (0 - Eb)
+        print("WINNING: " + str(winner_old_rating) + ' ' + str(winner.rating))
+
+    losses = int(scores[0])
+    for games in range(0, losses):
+        winner.gamesPlayed += 1
+        winner.losses += 1
+        loser.gamesPlayed += 1
+        loser.losses += 1
+        winner_old_rating = winner.rating
+        loser_old_rating = loser.rating
+        winner.k = kStart / winner.gamesPlayed;
+        if winner.k < kMinimum:
+            winner.k = kMinimum
+        loser.k = kStart / loser.gamesPlayed;
+        if loser.k < kMinimum:
+            loser.k = kMinimum
+        Ea = calcE(winner_old_rating, loser_old_rating)
+        Eb = calcE(loser_old_rating, winner_old_rating)
+        winner.rating =  winner_old_rating + winner.k * (0 - Ea)
+        loser.rating =  loser_old_rating + loser.k * (1 - Eb)
+        print("Losing!: " + str(winner_old_rating) + ' ' + str(winner.rating))
 
 
-def calc_expected(a, b):
-    return 1.0 / (1 + 10**((b - a) / 400) )
+
+def calcE(a, b):
+    return 1.0 / (1.0 + 10.0**((b - a) / 400))
 
 
 def init_challonge(username, api_key):
@@ -97,7 +129,8 @@ def harvest_matches(id):
     for m in matches:
         winner = ids_to_names[m['winner-id']]
         loser = ids_to_names[m['loser-id']]
-        toReturn.append(match(winner, loser))
+        score = m['scores-csv']
+        toReturn.append(match(winner, loser, score))
     return toReturn
 
 def update_elos_from_matches(matches):
@@ -107,7 +140,9 @@ def update_elos_from_matches(matches):
        # print "winner: " , winner
         loser = get_player(match.loser)
        # print "loser: " , loser
-        update_rating(winner, loser)
+        scores = match.score.split('-')
+        scores.sort()
+        update_rating(winner, loser, scores)
 
 
 
